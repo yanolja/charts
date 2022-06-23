@@ -5,6 +5,12 @@ user:
   email: admin@sentry.local
   password: aaaa
 
+  ## set this value to an existingSecret name to create the admin user with the password in the secret
+  # existingSecret: sentry-admin-password
+  
+  ## set this value to an existingSecretKey which holds the password to be used for sentry admin user default key is `admin-password`
+  # existingSecretKey: admin-password
+
 # this is required on the first installation, as sentry has to be initialized first
 # recommended to set false for updating the helm chart afterwards,
 # as you will have some downtime on each update if it's a hook
@@ -29,7 +35,7 @@ images:
     imagePullSecrets: []
   symbolicator:
     # repository: getsentry/symbolicator
-    tag: 0.3.4
+    tag: 0.5.0
     # pullPolicy: IfNotPresent
     imagePullSecrets: []
 
@@ -214,6 +220,11 @@ sentry:
 snuba:
   api:
     replicas: 1
+    # set command to ["snuba","api"] if securityContext.runAsUser > 0
+    # see: https://github.com/getsentry/snuba/issues/956
+    command: {}
+    #   - snuba
+    #   - api
     env: []
     probeInitialDelaySeconds: 10
     liveness:
@@ -326,6 +337,7 @@ snuba:
     # tolerations: []
     # podLabels: []
     autoOffsetReset: "earliest"
+    partitions: 1
 
   sessionsConsumer:
     replicas: 1
@@ -418,6 +430,7 @@ hooks:
         memory: 64Mi
     affinity: {}
     nodeSelector: {}
+    securityContext: {}
     # tolerations: []
   dbInit:
     env: []

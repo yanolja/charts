@@ -110,14 +110,17 @@ data:
       {{- if .Values.filestore.s3.endpointUrl }}
       endpoint_url: {{ .Values.filestore.s3.endpointUrl | quote }}
       {{- end }}
-      {{- if .Values.filestore.s3.signature_version }}
-      signature_version: {{ .Values.filestore.s3.signature_version | quote }}
+      {{- if .Values.filestore.s3.signatureVersion }}
+      signature_version: {{ .Values.filestore.s3.signatureVersion | quote }}
       {{- end }}
-      {{- if .Values.filestore.s3.region_name }}
-      region_name: {{ .Values.filestore.s3.region_name | quote }}
+      {{- if .Values.filestore.s3.regionName }}
+      region_name: {{ .Values.filestore.s3.regionName | quote }}
       {{- end }}
-      {{- if .Values.filestore.s3.default_acl }}
-      default_acl: {{ .Values.filestore.s3.default_acl | quote }}
+      {{- if .Values.filestore.s3.defaultAcl }}
+      default_acl: {{ .Values.filestore.s3.defaultAcl | quote }}
+      {{- end }}
+      {{- if .Values.filestore.s3.useSsl }}
+      use_ssl: {{ .Values.filestore.s3.useSsl | quote }}
       {{- end }}
     {{ end }}
 

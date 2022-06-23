@@ -648,9 +648,10 @@ filestore:
   #  secretKey:
   #  bucketName:
   #  endpointUrl:
-  #  signature_version:
-  #  region_name:
-  #  default_acl:
+  #  signatureVersion:
+  #  regionName:
+  #  defaultAcl:
+  #  useSsl:
 
 config:
   # No YAML Extension Config Given

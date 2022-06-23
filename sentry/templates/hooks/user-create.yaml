@@ -31,11 +31,19 @@ spec:
 {{ toYaml .Values.sentry.worker.podLabels | indent 8 }}
         {{- end }}
     spec:
-      restartPolicy: Never
+      {{- if .Values.hooks.dbInit.affinity }}
+      affinity:
+{{ toYaml .Values.hooks.dbInit.affinity | indent 8 }}
+      {{- end }}
+      {{- if .Values.hooks.dbInit.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.hooks.dbInit.nodeSelector | indent 8 }}
+      {{- end }}
       {{- if .Values.hooks.dbInit.tolerations }}
       tolerations:
 {{ toYaml .Values.hooks.dbInit.tolerations | indent 8 }}
       {{- end }}
+      restartPolicy: Never
       {{- if .Values.images.sentry.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.images.sentry.imagePullSecrets | indent 8 }}

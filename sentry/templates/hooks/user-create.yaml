@@ -42,11 +42,11 @@ spec:
       nodeSelector:
 {{ toYaml .Values.hooks.dbInit.nodeSelector | indent 8 }}
       {{- end }}
+      restartPolicy: Never
       {{- if .Values.hooks.dbInit.tolerations }}
       tolerations:
 {{ toYaml .Values.hooks.dbInit.tolerations | indent 8 }}
       {{- end }}
-      restartPolicy: Never
       {{- if .Values.images.sentry.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.images.sentry.imagePullSecrets | indent 8 }}
@@ -82,6 +82,7 @@ spec:
               exit 1; \
             fi
         env:
+{{ include "sentry.env" . | indent 8 }}
         {{- if .Values.user.existingSecret }}
         - name: ADMIN_PASSWORD
           valueFrom:
@@ -91,13 +92,6 @@ spec:
         {{- else if .Values.user.password }}
         - name: ADMIN_PASSWORD
           value: {{ .Values.user.password | quote }}
-        {{- end }}        
-        {{- if .Values.postgresql.enabled }}
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ default (include "sentry.postgresql.fullname" .) .Values.postgresql.existingSecret }}
-              key: {{ default "postgresql-password" .Values.postgresql.existingSecretKey }}
         {{- end }}
         {{- if .Values.hooks.dbInit.env }}
 {{ toYaml .Values.hooks.dbInit.env | indent 8 }}
@@ -106,12 +100,18 @@ spec:
         - mountPath: /etc/sentry
           name: config
           readOnly: true
+{{- if .Values.hooks.dbInit.volumeMounts }}
+{{ toYaml .Values.hooks.dbInit.volumeMounts | indent 8 }}
+{{- end }}
         resources:
 {{ toYaml .Values.hooks.dbInit.resources | indent 10 }}
       volumes:
       - name: config
         configMap:
           name: {{ template "sentry.fullname" . }}-sentry
+{{- if .Values.hooks.dbInit.volumes }}
+{{ toYaml .Values.hooks.dbInit.volumes | indent 6 }}
+{{- end }}
       {{- if .Values.hooks.shareProcessNamespace }}
       shareProcessNamespace: {{ .Values.hooks.shareProcessNamespace }}
       {{- end }}

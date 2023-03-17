@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "sentry.fullname" . }}-subscription-consumer-transactions
+  name: {{ template "sentry.fullname" . }}-ingest-metrics-consumer-perf
   labels:
-    app: sentry
+    app: {{ template "sentry.fullname" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
@@ -20,63 +20,76 @@ spec:
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
-        app: sentry
-        release: "{{ .Release.Name }}"
-        role: sentry-subscription-consumer-transactions
-  replicas: {{ .Values.sentry.subscriptionConsumerTransactions.replicas }}
+      app: {{ template "sentry.fullname" . }}
+      release: "{{ .Release.Name }}"
+      role: ingest-metrics-consumer-perf
+{{- if not .Values.sentry.ingestMetricsConsumerPerf.autoscaling.enabled }}
+  replicas: {{ .Values.sentry.ingestMetricsConsumerPerf.replicas }}
+{{- end }}
   template:
     metadata:
       annotations:
         checksum/configYml: {{ .Values.config.configYml | toYaml | toString | sha256sum }}
         checksum/sentryConfPy: {{ .Values.config.sentryConfPy | sha256sum }}
         checksum/config.yaml: {{ include (print $.Template.BasePath "/configmap-sentry.yaml") . | sha256sum }}
-        {{- if .Values.sentry.subscriptionConsumerTransactions.annotations }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.annotations | indent 8 }}
+        {{- if .Values.sentry.ingestMetricsConsumerPerf.annotations }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.annotations | indent 8 }}
         {{- end }}
       labels:
-        app: sentry
+        app: {{ template "sentry.fullname" . }}
         release: "{{ .Release.Name }}"
-        role: sentry-subscription-consumer-transactions
-        {{- if .Values.sentry.subscriptionConsumerTransactions.podLabels }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.podLabels | indent 8 }}
+        role: ingest-metrics-consumer-perf
+        {{- if .Values.sentry.ingestMetricsConsumerPerf.podLabels }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.podLabels | indent 8 }}
         {{- end }}
     spec:
       affinity:
-      {{- if .Values.sentry.subscriptionConsumerTransactions.affinity }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.affinity | indent 8 }}
+      {{- if .Values.sentry.ingestMetricsConsumerPerf.affinity }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.affinity | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.nodeSelector }}
+      {{- if .Values.sentry.ingestMetricsConsumerPerf.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.nodeSelector | indent 8 }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.nodeSelector | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.tolerations }}
+      {{- if .Values.sentry.ingestMetricsConsumerPerf.tolerations }}
       tolerations:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.tolerations | indent 8 }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.tolerations | indent 8 }}
       {{- end }}
       {{- if .Values.images.sentry.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.images.sentry.imagePullSecrets | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.securityContext }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy | quote }}
+      {{- end }}
+      {{- if .Values.dnsConfig }}
+      dnsConfig:
+{{ toYaml .Values.dnsConfig | indent 8 }}
+      {{- end }}
+      {{- if .Values.sentry.ingestMetricsConsumerPerf.securityContext }}
       securityContext:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.securityContext | indent 8 }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.securityContext | indent 8 }}
       {{- end }}
       containers:
-      - name: {{ .Chart.Name }}-subscription-consumer-transactions
+      - name: {{ .Chart.Name }}-ingest-metrics-consumer-perf
         image: "{{ template "sentry.image" . }}"
         imagePullPolicy: {{ default "IfNotPresent" .Values.images.sentry.pullPolicy }}
         command: ["sentry"]
         args:
           - "run"
-          - "query-subscription-consumer"
-          - "--topic"
-          - "transactions-subscription-results"
-          - "--commit-batch-size"
-          - "{{ default "1" .Values.sentry.subscriptionConsumerEvents.commitBatchSize }}"
+          - "ingest-metrics-parallel-consumer"
+          - "--ingest-profile"
+          - "performance"
+          {{- if .Values.sentry.ingestMetricsConsumerPerf.maxBatchSize }}
+          - "--max-msg-batch-size"
+          - "{{ .Values.sentry.ingestMetricsConsumerPerf.maxBatchSize }}"
+          {{- end }}
         env:
+        - name: C_FORCE_ROOT
+          value: "true"
 {{ include "sentry.env" . | indent 8 }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.env }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.env | indent 8 }}
+{{- if .Values.sentry.ingestMetricsConsumerPerf.env }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.env | indent 8 }}
 {{- end }}
         volumeMounts:
         - mountPath: /etc/sentry
@@ -88,16 +101,16 @@ spec:
         - name: sentry-google-cloud-key
           mountPath: /var/run/secrets/google
         {{ end }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.volumeMounts }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.volumeMounts | indent 8 }}
+{{- if .Values.sentry.ingestMetricsConsumerPerf.volumeMounts }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.volumeMounts | indent 8 }}
 {{- end }}
         resources:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.resources | indent 12 }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.sidecars }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.sidecars | indent 6 }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.resources | indent 12 }}
+{{- if .Values.sentry.ingestMetricsConsumerPerf.sidecars }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.sidecars | indent 6 }}
 {{- end }}
       {{- if .Values.serviceAccount.enabled }}
-      serviceAccountName: {{ .Values.serviceAccount.name }}-subscription-consumer-transactions
+      serviceAccountName: {{ .Values.serviceAccount.name }}-ingest-metrics-consumer-perf
       {{- end }}
       volumes:
       - name: config
@@ -120,9 +133,9 @@ spec:
         secret:
           secretName: {{ .Values.filestore.gcs.secretName }}
       {{ end }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.volumes }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.volumes | indent 6 }}
+{{- if .Values.sentry.ingestMetricsConsumerPerf.volumes }}
+{{ toYaml .Values.sentry.ingestMetricsConsumerPerf.volumes | indent 6 }}
 {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.priorityClassName }}
-      priorityClassName: "{{ .Values.sentry.subscriptionConsumerTransactions.priorityClassName }}"
+      {{- if .Values.sentry.ingestMetricsConsumerPerf.priorityClassName }}
+      priorityClassName: "{{ .Values.sentry.ingestMetricsConsumerPerf.priorityClassName }}"
       {{- end }}

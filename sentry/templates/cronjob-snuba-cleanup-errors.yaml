@@ -57,6 +57,10 @@ spec:
           imagePullSecrets:
 {{ toYaml .Values.images.snuba.imagePullSecrets | indent 12 }}
             {{- end }}
+            {{- if .Values.snuba.cleanupErrors.securityContext }}
+          securityContext:
+{{ toYaml .Values.snuba.cleanupErrors.securityContext | indent 12 }}
+      {{- end }}
           containers:
           - name: {{ .Chart.Name }}-snuba-cleanup-errors
             image: "{{ template "snuba.image" . }}"
@@ -73,18 +77,20 @@ spec:
                 - "--clickhouse-port"
                 - {{ include "sentry.clickhouse.port" . | quote }}
             env:
-              - name: SNUBA_SETTINGS
-                value: /etc/snuba/settings.py
-              {{- if .Values.snuba.cleanupErrors.env }}
-{{ toYaml .Values.snuba.cleanupErrors.env | indent 14 }}
-              {{- end }}
+{{ include "sentry.snuba.env" . | indent 12 }}
+{{- if .Values.snuba.cleanupErrors.env }}
+{{ toYaml .Values.snuba.cleanupErrors.env | indent 12 }}
+{{- end }}
             envFrom:
                 - secretRef:
                       name: {{ template "sentry.fullname" . }}-snuba-env
             volumeMounts:
-                - mountPath: /etc/snuba
-                  name: config
-                  readOnly: true
+              - mountPath: /etc/snuba
+                name: config
+                readOnly: true
+{{- if .Values.snuba.cleanupErrors.volumeMounts }}
+{{ toYaml .Values.snuba.cleanupErrors.volumeMounts | indent 14 }}
+{{- end }}
             resources:
 {{ toYaml .Values.snuba.cleanupErrors.resources | indent 14 }}
 {{- if .Values.snuba.cleanupErrors.sidecars }}
@@ -96,7 +102,7 @@ spec:
               configMap:
                 name: {{ template "sentry.fullname" . }}-snuba
 {{- if .Values.snuba.cleanupErrors.volumes }}
-{{ toYaml .Values.snuba.cleanupErrors.volumes | indent 10 }}
+{{ toYaml .Values.snuba.cleanupErrors.volumes | indent 12 }}
 {{- end }}
           {{- if .Values.snuba.cleanupErrors.priorityClassName }}
           priorityClassName: "{{ .Values.snuba.cleanupErrors.priorityClassName }}"

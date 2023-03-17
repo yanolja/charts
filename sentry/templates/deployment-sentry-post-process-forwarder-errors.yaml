@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "sentry.fullname" . }}-subscription-consumer-transactions
+  name: {{ template "sentry.fullname" . }}-post-process-forward-errors
   labels:
     app: sentry
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
@@ -22,61 +22,68 @@ spec:
     matchLabels:
         app: sentry
         release: "{{ .Release.Name }}"
-        role: sentry-subscription-consumer-transactions
-  replicas: {{ .Values.sentry.subscriptionConsumerTransactions.replicas }}
+        role: sentry-post-process-forward-errors
+  replicas: {{ .Values.sentry.postProcessForwardErrors.replicas }}
   template:
     metadata:
       annotations:
         checksum/configYml: {{ .Values.config.configYml | toYaml | toString | sha256sum }}
         checksum/sentryConfPy: {{ .Values.config.sentryConfPy | sha256sum }}
         checksum/config.yaml: {{ include (print $.Template.BasePath "/configmap-sentry.yaml") . | sha256sum }}
-        {{- if .Values.sentry.subscriptionConsumerTransactions.annotations }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.annotations | indent 8 }}
+        {{- if .Values.sentry.postProcessForwardErrors.annotations }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.annotations | indent 8 }}
         {{- end }}
       labels:
         app: sentry
         release: "{{ .Release.Name }}"
-        role: sentry-subscription-consumer-transactions
-        {{- if .Values.sentry.subscriptionConsumerTransactions.podLabels }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.podLabels | indent 8 }}
+        role: sentry-post-process-forward-errors
+        {{- if .Values.sentry.postProcessForwardErrors.podLabels }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.podLabels | indent 8 }}
         {{- end }}
     spec:
       affinity:
-      {{- if .Values.sentry.subscriptionConsumerTransactions.affinity }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.affinity | indent 8 }}
+      {{- if .Values.sentry.postProcessForwardErrors.affinity }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.affinity | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.nodeSelector }}
+      {{- if .Values.sentry.postProcessForwardErrors.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.nodeSelector | indent 8 }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.nodeSelector | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.tolerations }}
+      {{- if .Values.sentry.postProcessForwardErrors.tolerations }}
       tolerations:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.tolerations | indent 8 }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.tolerations | indent 8 }}
       {{- end }}
       {{- if .Values.images.sentry.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.images.sentry.imagePullSecrets | indent 8 }}
       {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.securityContext }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy | quote }}
+      {{- end }}
+      {{- if .Values.dnsConfig }}
+      dnsConfig:
+{{ toYaml .Values.dnsConfig | indent 8 }}
+      {{- end }}
+      {{- if .Values.sentry.postProcessForwardErrors.securityContext }}
       securityContext:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.securityContext | indent 8 }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.securityContext | indent 8 }}
       {{- end }}
       containers:
-      - name: {{ .Chart.Name }}-subscription-consumer-transactions
+      - name: {{ .Chart.Name }}-post-process-forward-errors
         image: "{{ template "sentry.image" . }}"
         imagePullPolicy: {{ default "IfNotPresent" .Values.images.sentry.pullPolicy }}
         command: ["sentry"]
         args:
           - "run"
-          - "query-subscription-consumer"
-          - "--topic"
-          - "transactions-subscription-results"
+          - "post-process-forwarder"
           - "--commit-batch-size"
-          - "{{ default "1" .Values.sentry.subscriptionConsumerEvents.commitBatchSize }}"
+          - "{{ default "1" .Values.sentry.postProcessForwardErrors.commitBatchSize }}"
+          - "--entity"
+          - "errors"
         env:
 {{ include "sentry.env" . | indent 8 }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.env }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.env | indent 8 }}
+{{- if .Values.sentry.postProcessForwardErrors.env }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.env | indent 8 }}
 {{- end }}
         volumeMounts:
         - mountPath: /etc/sentry
@@ -88,16 +95,16 @@ spec:
         - name: sentry-google-cloud-key
           mountPath: /var/run/secrets/google
         {{ end }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.volumeMounts }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.volumeMounts | indent 8 }}
+{{- if .Values.sentry.postProcessForwardErrors.volumeMounts }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.volumeMounts | indent 8 }}
 {{- end }}
         resources:
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.resources | indent 12 }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.sidecars }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.sidecars | indent 6 }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.resources | indent 12 }}
+{{- if .Values.sentry.postProcessForwardErrors.sidecars }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.sidecars | indent 6 }}
 {{- end }}
       {{- if .Values.serviceAccount.enabled }}
-      serviceAccountName: {{ .Values.serviceAccount.name }}-subscription-consumer-transactions
+      serviceAccountName: {{ .Values.serviceAccount.name }}-post-process-forwarder-errors
       {{- end }}
       volumes:
       - name: config
@@ -120,9 +127,9 @@ spec:
         secret:
           secretName: {{ .Values.filestore.gcs.secretName }}
       {{ end }}
-{{- if .Values.sentry.subscriptionConsumerTransactions.volumes }}
-{{ toYaml .Values.sentry.subscriptionConsumerTransactions.volumes | indent 6 }}
+{{- if .Values.sentry.postProcessForwardErrors.volumes }}
+{{ toYaml .Values.sentry.postProcessForwardErrors.volumes | indent 6 }}
 {{- end }}
-      {{- if .Values.sentry.subscriptionConsumerTransactions.priorityClassName }}
-      priorityClassName: "{{ .Values.sentry.subscriptionConsumerTransactions.priorityClassName }}"
+      {{- if .Values.sentry.postProcessForwardErrors.priorityClassName }}
+      priorityClassName: "{{ .Values.sentry.postProcessForwardErrors.priorityClassName }}"
       {{- end }}

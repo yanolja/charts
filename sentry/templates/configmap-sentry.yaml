@@ -118,15 +118,15 @@ data:
       {{- if .Values.filestore.s3.defaultAcl }}
       default_acl: {{ .Values.filestore.s3.defaultAcl | quote }}
       {{- end }}
-      {{- if .Values.filestore.s3.useSsl }}
-      use_ssl: {{ .Values.filestore.s3.useSsl | quote }}
-      {{- end }}
-      #add comfig params for s3
-      {{- if .Values.filestore.s3.addressing_style }}
-      addressing_style: {{ .Values.filestore.s3.addressing_style | quote }}
+      #add config params for s3
+      {{- if .Values.filestore.s3.addressingStyle }}
+      addressing_style: {{ .Values.filestore.s3.addressingStyle | quote }}
       {{- end }}
       {{- if .Values.filestore.s3.location }}
       location: {{ .Values.filestore.s3.location | quote }}
+      {{- end }}
+      {{- if .Values.filestore.s3.useSsl }}
+      use_ssl: {{ .Values.filestore.s3.useSsl | quote }}
       {{- end }}
     {{ end }}
 
